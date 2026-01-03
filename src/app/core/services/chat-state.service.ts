@@ -254,6 +254,9 @@ export class ChatStateService {
             const map = new Map<string, string>();
             allParticipants?.forEach((p: any) => {
                 if (dmRoomIds.has(p.room_id) && p.user_id !== currentUserId) {
+                    if (map.has(p.user_id)) {
+                        console.warn('ChatStateService: Duplicate DM room found for user', p.user_id, 'Overwriting', map.get(p.user_id), 'with', p.room_id);
+                    }
                     map.set(p.user_id, p.room_id);
                 }
             });

@@ -57,7 +57,7 @@
       <div *ngIf="dmsExpanded" class="mt-1 space-y-0.5">
         <button *ngFor="let dm of dms$ | async" (click)="selectRoom(dm.id)" [class]="cn(
             'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all',
-             (selectedRoom$ | async) === dm.id
+             ((selectedRoom$ | async) === dm.id || (selectedRoom$ | async) === dm.roomId)
                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                : 'text-sidebar-foreground hover:bg-hover-overlay hover:text-foreground'
           )">
