@@ -163,8 +163,8 @@ export class ChatStateService {
                     id: p.id, // For creating a NEW DM, we use User ID initially, then Room ID once created. 
                     // This dual-use of 'id' in the UI model is tricky. 
                     // Let's treat valid Room IDs as Rooms, and User IDs as "Potential Rooms".
-                    name: p.username,
-                    avatar: p.avatar_url,
+                    name: p.username || 'User ' + p.id.slice(0, 4),
+                    avatar: p.avatar_url || 'U',
                     userId: p.id,
                     online: false
                 }));

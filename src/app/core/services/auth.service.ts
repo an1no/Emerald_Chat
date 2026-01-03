@@ -24,10 +24,39 @@ export class AuthService {
         this._session.next(session);
         this._user.next(session?.user ?? null);
 
+        if (session?.user) {
+            this.ensureProfile(session.user);
+        }
+
         this.supabase.client.auth.onAuthStateChange((_event, session) => {
             this._session.next(session);
             this._user.next(session?.user ?? null);
+            if (session?.user) {
+                this.ensureProfile(session.user);
+            }
         });
+    }
+
+    private async ensureProfile(user: User) {
+        // Check if profile exists
+        const { data } = await this.supabase.client
+            .from('profiles')
+            .select('username')
+            .eq('id', user.id)
+            .single();
+
+        if (!data || !data.username) {
+            // Create or update profile
+            const username = user.email?.split('@')[0] || 'User';
+            await this.supabase.client
+                .from('profiles')
+                .upsert({
+                    id: user.id,
+                    username: username,
+                    avatar_url: 'U',
+                    updated_at: new Date()
+                });
+        }
     }
 
     async signIn(email: string) {
