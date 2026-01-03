@@ -28,14 +28,23 @@ export class ChatStateService {
     public rooms$ = this._rooms.asObservable();
 
     private _dms = new BehaviorSubject<DirectMessage[]>([]);
+    private _users = new BehaviorSubject<DirectMessage[]>([]);
     private _onlineUsers = new BehaviorSubject<Set<string>>(new Set());
 
-    public dms$ = combineLatest([this._dms, this._onlineUsers]).pipe(
-        map(([dms, onlineUsers]) => {
-            return dms.map(dm => ({
-                ...dm,
-                online: dm.userId ? onlineUsers.has(dm.userId) : false
-            }));
+    public dms$ = combineLatest([this._dms, this._users, this._onlineUsers]).pipe(
+        map(([dms, users, onlineUsers]) => {
+            const currentUserId = this.authService.currentUser?.id;
+
+            // Map users to DM format
+            return users
+                .filter(u => u.userId !== currentUserId)
+                .map(u => ({
+                    ...u,
+                    // Determine if online
+                    online: u.userId ? onlineUsers.has(u.userId) : false,
+                    // Attempt to find existing DM room info (unread count, etc)
+                    // simplified for now
+                }));
         })
     );
 
@@ -98,6 +107,19 @@ export class ChatStateService {
         this._selectedRoom.next(roomId);
         this.loadMessages(roomId);
         this.initRealtime(roomId);
+    }
+
+    async handleDmSelection(targetId: string) {
+        // 1. Check if `targetId` is a Room ID we already know (public room).
+        const knownPublicRoom = this._rooms.value.find(r => r.id === targetId);
+        if (knownPublicRoom) {
+            this.selectRoom(targetId);
+            return;
+        }
+
+        // 2. Just attempt to start DM with this User ID.
+        // It's likely a User ID if it didn't match a Room ID.
+        await this.startDm(targetId);
     }
 
     async loadMessages(roomId: string) {
