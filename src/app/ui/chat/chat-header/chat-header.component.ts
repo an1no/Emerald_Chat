@@ -13,16 +13,13 @@ import { cn } from '../../../shared/utils/cn';
 export class ChatHeaderComponent {
     @Input() roomName = '';
     @Input() roomType: 'room' | 'dm' = 'room';
-    @Input() memberCount = 12;
+    @Input() memberCount = 0;
+    @Input() onlineCount = 0;
     @Input() isOnline = true;
 
     cn = cn;
 
     getInitials(name: string): string {
         return name.split(" ").map(n => n[0]).join("");
-    }
-
-    getOnlineCount(): number {
-        return Math.floor(this.memberCount * 0.7);
     }
 }

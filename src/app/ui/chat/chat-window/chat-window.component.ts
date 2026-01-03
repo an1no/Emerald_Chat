@@ -33,9 +33,12 @@ export class ChatWindowComponent implements AfterViewChecked {
         this.chatService.messages$,
         this.chatService.selectedRoom$,
         this.chatService.rooms$,
-        this.chatService.dms$
+        this.chatService.rooms$,
+        this.chatService.dms$,
+        this.chatService.onlineCount$,
+        this.chatService.totalUsersCount$
     ]).pipe(
-        map(([messages, selectedRoomId, rooms, dms]) => {
+        map(([messages, selectedRoomId, rooms, dms, onlineCount, totalUsersCount]) => {
             // Find room info
             const room = rooms.find(r => r.id === selectedRoomId);
             const dm = dms.find(d => d.id === selectedRoomId || `dm-${d.id}` === selectedRoomId); // Handle ID format if needed
@@ -57,7 +60,9 @@ export class ChatWindowComponent implements AfterViewChecked {
                 messages,
                 roomName,
                 roomType,
-                isOnline
+                isOnline,
+                onlineCount,
+                memberCount: totalUsersCount
             };
         }),
         tap(() => this.shouldScroll = true) // Trigger scroll on new data

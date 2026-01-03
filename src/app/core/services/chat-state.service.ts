@@ -48,6 +48,9 @@ export class ChatStateService {
         })
     );
 
+    public onlineCount$ = this._onlineUsers.pipe(map(s => s.size));
+    public totalUsersCount$ = this._users.pipe(map(u => u.length));
+
     constructor() {
         this.loadRooms();
         this.loadAllUsers();

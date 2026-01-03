@@ -1,6 +1,6 @@
 <div class="flex flex-col h-full bg-background" *ngIf="vm$ | async as vm">
-    <app-chat-header [roomName]="vm.roomName" [roomType]="vm.roomType" [memberCount]="12"
-        [isOnline]="vm.isOnline"></app-chat-header>
+    <app-chat-header [roomName]="vm.roomName" [roomType]="vm.roomType" [memberCount]="vm.memberCount"
+        [onlineCount]="vm.onlineCount" [isOnline]="vm.isOnline"></app-chat-header>
 
     <!-- Messages area -->
     <div class="flex-1 overflow-y-auto scrollbar-thin py-4 px-4" #scrollContainer>
