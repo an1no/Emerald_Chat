@@ -40,7 +40,8 @@ export class ChatWindowComponent implements AfterViewChecked {
         map(([messages, selectedRoomId, rooms, dms, onlineCount, totalUsersCount]) => {
             // Find room info
             const room = rooms.find(r => r.id === selectedRoomId);
-            const dm = dms.find(d => d.id === selectedRoomId || `dm-${d.id}` === selectedRoomId); // Handle ID format if needed
+            // dms now have .roomId property if mapped
+            const dm = dms.find(d => (d as any).roomId === selectedRoomId || d.id === selectedRoomId);
 
             let roomName = 'Chat';
             let roomType: 'room' | 'dm' = 'room';

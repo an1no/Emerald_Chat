@@ -30,21 +30,29 @@ export class ChatStateService {
     private _dms = new BehaviorSubject<DirectMessage[]>([]);
     private _users = new BehaviorSubject<DirectMessage[]>([]);
     private _onlineUsers = new BehaviorSubject<Set<string>>(new Set());
+    private _dmMap = new BehaviorSubject<Map<string, string>>(new Map()); // Map<OtherUserId, RoomId>
 
-    public dms$ = combineLatest([this._dms, this._users, this._onlineUsers]).pipe(
-        map(([dms, users, onlineUsers]) => {
+    public dms$ = combineLatest([this._dms, this._users, this._onlineUsers, this._dmMap]).pipe(
+        map(([dms, users, onlineUsers, dmMap]) => {
             const currentUserId = this.authService.currentUser?.id;
 
             // Map users to DM format
             return users
                 .filter(u => u.userId !== currentUserId)
-                .map(u => ({
-                    ...u,
-                    // Determine if online
-                    online: u.userId ? onlineUsers.has(u.userId) : false,
-                    // Attempt to find existing DM room info (unread count, etc)
-                    // simplified for now
-                }));
+                .map(u => {
+                    const existingRoomId = u.userId ? dmMap.get(u.userId) : undefined;
+                    return {
+                        ...u,
+                        // If we have a mapped room ID, use it. Otherwise keep the User ID as ID (for now, until clicked)
+                        // Actually, let's allow 'id' to be RoomID if exists, else UserID?
+                        // No, let's add a explicit 'roomId' property.
+                        roomId: existingRoomId,
+                        // Determine if online
+                        online: u.userId ? onlineUsers.has(u.userId) : false,
+                        // Attempt to find existing DM room info (unread count, etc)
+                        // simplified for now
+                    } as DirectMessage & { roomId?: string };
+                });
         })
     );
 
@@ -57,6 +65,7 @@ export class ChatStateService {
         this.authService.user$.subscribe(user => {
             if (user) {
                 this.initPresence(user.id);
+                this.loadDmMapping(user.id);
             }
         });
     }
@@ -178,17 +187,81 @@ export class ChatStateService {
         }
     }
 
+    async loadDmMapping(currentUserId: string) {
+        try {
+            // 1. Get all room participants for rooms I am in
+            // This is a bit heavy, optimizing:
+            // Get my rooms first
+            const { data: myInvolvements, error: err1 } = await this.supabaseService.client
+                .from('room_participants')
+                .select('room_id')
+                .eq('user_id', currentUserId);
+
+            if (err1) throw err1;
+            if (!myInvolvements || myInvolvements.length === 0) return;
+
+            const myRoomIds = myInvolvements.map((i: any) => i.room_id);
+
+            // 2. Get all participants for these rooms to find the partner
+            const { data: allParticipants, error: err2 } = await this.supabaseService.client
+                .from('room_participants')
+                .select('room_id, user_id')
+                .in('room_id', myRoomIds); // Only check rooms I am in
+
+            if (err2) throw err2;
+
+            // 3. Filter for DMs (rooms with exactly 2 people? Or check 'rooms' table for is_dm?)
+            // We should filter for rooms that are DMs. 
+            // Let's fetch the room details for these IDs to be sure it's a DM.
+
+            // Actually, we have `_rooms` loaded which has `is_dm`.
+            // But `loadRooms` filters public rooms. And `_dms` (from loadRooms) has IDs.
+            // We can check against `this._dms` but `loadRooms` logic for `_dms` was just `filter(r => r.is_dm)`.
+            // So we DO know which IDs are DMs.
+
+            // Let's get the list of known DM Room IDs from Supabase again to be safe/clean?
+            // Or just trust `is_dm` flag if we had fetched it.
+
+            // Optimization: Let's assume all my 1-on-1 rooms are DMs? No.
+            // Let's fetch room types.
+            const { data: dmRooms, error: err3 } = await this.supabaseService.client
+                .from('rooms')
+                .select('id')
+                .in('id', myRoomIds)
+                .eq('is_dm', true);
+
+            if (err3) throw err3;
+            const dmRoomIds = new Set(dmRooms?.map((r: any) => r.id));
+
+            // 4. Build Map
+            const map = new Map<string, string>();
+            allParticipants?.forEach((p: any) => {
+                if (dmRoomIds.has(p.room_id) && p.user_id !== currentUserId) {
+                    map.set(p.user_id, p.room_id);
+                }
+            });
+
+            this._dmMap.next(map);
+
+        } catch (error) {
+            console.error('Error loading DM mapping:', error);
+        }
+    }
+
     async startDm(otherUserId: string) {
-        // Check if room exists (this logic is complex without proper backend check, 
-        // but we can try to find a room where room_participants includes both and type is DM).
-        // For this MVP, let's just create a new room for now or implement a "get_or_create_dm" RPC.
-
-        // SIMPLIFIED MVP: Just create a room if one doesn't exist in our LOCAL list (which is weak).
-        // Better: Call an RPC or Edge Function.
-        // FALLBACK: Just create a room.
-
         const currentUserId = this.authService.currentUser?.id;
         if (!currentUserId) return;
+
+        // 1. Check if we already have a mapped DM
+        const existingRoomId = this._dmMap.value.get(otherUserId);
+        if (existingRoomId) {
+            this.selectRoom(existingRoomId);
+            return;
+        }
+
+        // 2. Create room if not found
+        // ... (rest of creation logic)
+
 
         // Attempt to create room
         const { data: newRoom, error } = await this.supabaseService.client
@@ -215,8 +288,9 @@ export class ChatStateService {
         // Actually, we need to map the User ID to the new Room ID to open the chat window.
         // This suggests we need a mechanism to Select Room By User ID.
 
-        // For now, let's just reload rooms and select the new one.
+        // Update local map optimistically or reload
         await this.loadRooms();
+        await this.loadDmMapping(currentUserId); // Refresh map
         this.selectRoom(newRoom.id);
     }
 
