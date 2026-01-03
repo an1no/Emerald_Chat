@@ -130,15 +130,24 @@ export class ChatStateService {
 
     async handleDmSelection(targetId: string) {
         console.log('ChatStateService: handleDmSelection', targetId);
-        // 1. Check if `targetId` is a Room ID we already know (public room).
+
+        // 1. Check if `targetId` is a Public Room ID
         const knownPublicRoom = this._rooms.value.find(r => r.id === targetId);
         if (knownPublicRoom) {
             this.selectRoom(targetId);
             return;
         }
 
-        // 2. Just attempt to start DM with this User ID.
-        // It's likely a User ID if it didn't match a Room ID.
+        // 2. Check if `targetId` is a Private DM Room ID (Direct Lookup)
+        // This occurs if we click an "Unmapped Room" in the sidebar
+        const knownDmRoom = this._dms.value.find(r => r.id === targetId);
+        if (knownDmRoom) {
+            console.log('ChatStateService: Target is a known DM Room ID', targetId);
+            this.selectRoom(targetId);
+            return;
+        }
+
+        // 3. Assume `targetId` is a User ID and try to find/create DM
         await this.startDm(targetId);
     }
 
