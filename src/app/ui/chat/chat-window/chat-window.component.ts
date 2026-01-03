@@ -67,6 +67,7 @@ export class ChatWindowComponent implements AfterViewChecked {
             }
 
             return {
+                selectedRoomId, // Debug
                 messages,
                 roomName,
                 roomType,
