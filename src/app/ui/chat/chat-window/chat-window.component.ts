@@ -33,7 +33,6 @@ export class ChatWindowComponent implements AfterViewChecked {
         this.chatService.messages$,
         this.chatService.selectedRoom$,
         this.chatService.rooms$,
-        this.chatService.rooms$,
         this.chatService.dms$,
         this.chatService.onlineCount$,
         this.chatService.totalUsersCount$
