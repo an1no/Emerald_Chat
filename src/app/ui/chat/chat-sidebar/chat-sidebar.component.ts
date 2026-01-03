@@ -30,8 +30,30 @@ export class ChatSidebarComponent {
     // Make cn available
     cn = cn;
 
-    selectRoom(id: string) {
-        this.chatService.selectRoom(id);
+    async selectRoom(roomOrUserId: string) {
+        // We need to differentiate between Room ID (UUIDv4) and User ID (UUIDv4).
+        // The problem is they look same.
+        // Strategy: In dms$, we can map the "id" to "user:<id>" or just keep it as ID.
+        // If we kept `id` as User ID in `dms$` (which comes from `loadAllUsers`), 
+        // passing it here means we need to "find existing room for this user" or "create one".
+
+        // Let's delegate this intelligence to the Service.
+        // BUT: The service's current `selectRoom` expects a ROOM ID.
+
+        // Let's check if the ID corresponds to a known ROOM in `rooms$`.
+        // If not, assume it's a User ID and call `startDm`.
+
+        let isRoom = false;
+        this.chatService.rooms$.subscribe(rooms => {
+            if (rooms.some(r => r.id === roomOrUserId)) isRoom = true;
+        }).unsubscribe(); // Need to take 1 synchronous value
+
+        // This is tricky because dms$ items might have Room ID (if existing) or User ID (if new).
+        // Let's try to pass the FULL object in html, not just ID.
+
+        // Fallback: Just call a new method `handleDmSelection(id)`
+
+        this.chatService.handleDmSelection(roomOrUserId);
     }
 
     getDmDisplayName(name: string): string {

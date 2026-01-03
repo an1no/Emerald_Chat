@@ -12,6 +12,12 @@ export interface Message {
     };
 }
 
+export interface Profile {
+    id: string;
+    username: string;
+    avatar_url: string;
+}
+
 export interface Room {
     id: string;
     name: string;

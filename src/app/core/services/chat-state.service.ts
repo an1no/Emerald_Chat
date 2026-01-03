@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
-import { Message, Room, DirectMessage } from '../models/message.model';
+import { Message, Room, DirectMessage, Profile } from '../models/message.model';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 @Injectable({
@@ -41,6 +41,7 @@ export class ChatStateService {
 
     constructor() {
         this.loadRooms();
+        this.loadAllUsers();
         this.authService.user$.subscribe(user => {
             if (user) {
                 this.initPresence(user.id);
@@ -126,6 +127,72 @@ export class ChatStateService {
         } catch (error) {
             console.error('Error loading messages:', error);
         }
+    }
+    async loadAllUsers() {
+        try {
+            const { data, error } = await this.supabaseService.client
+                .from('profiles')
+                .select('*');
+
+            if (error) throw error;
+
+            if (data) {
+                const users: DirectMessage[] = data.map((p: any) => ({
+                    id: p.id, // For creating a NEW DM, we use User ID initially, then Room ID once created. 
+                    // This dual-use of 'id' in the UI model is tricky. 
+                    // Let's treat valid Room IDs as Rooms, and User IDs as "Potential Rooms".
+                    name: p.username,
+                    avatar: p.avatar_url,
+                    userId: p.id,
+                    online: false
+                }));
+                this._users.next(users);
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    async startDm(otherUserId: string) {
+        // Check if room exists (this logic is complex without proper backend check, 
+        // but we can try to find a room where room_participants includes both and type is DM).
+        // For this MVP, let's just create a new room for now or implement a "get_or_create_dm" RPC.
+
+        // SIMPLIFIED MVP: Just create a room if one doesn't exist in our LOCAL list (which is weak).
+        // Better: Call an RPC or Edge Function.
+        // FALLBACK: Just create a room.
+
+        const currentUserId = this.authService.currentUser?.id;
+        if (!currentUserId) return;
+
+        // Attempt to create room
+        const { data: newRoom, error } = await this.supabaseService.client
+            .from('rooms')
+            .insert({ name: 'DM', is_dm: true }) // Name doesn't matter much for DM
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating DM room:', error);
+            return;
+        }
+
+        // Add participants
+        await this.supabaseService.client
+            .from('room_participants')
+            .insert([
+                { room_id: newRoom.id, user_id: currentUserId },
+                { room_id: newRoom.id, user_id: otherUserId }
+            ]);
+
+        // Reload rooms to refresh the list (and hopefully pick up the new room)
+        // But since we are showing ALL users, we just need to "select" this user context.
+        // Actually, we need to map the User ID to the new Room ID to open the chat window.
+        // This suggests we need a mechanism to Select Room By User ID.
+
+        // For now, let's just reload rooms and select the new one.
+        await this.loadRooms();
+        this.selectRoom(newRoom.id);
     }
 
     async sendMessage(content: string) {
