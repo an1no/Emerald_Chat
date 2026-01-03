@@ -54,6 +54,16 @@ export class ChatWindowComponent implements AfterViewChecked {
                 roomName = dm.name;
                 roomType = 'dm';
                 isOnline = dm.online;
+            } else if (!room && !dm && messages.length > 0) {
+                // FALLBACK: If we have messages but ID lookup failed (e.g. race condition),
+                // derive the name from the OTHER person in the chat.
+                // This assumes it is a DM if not found in rooms.
+                const otherMessage = messages.find(m => !m.isOwn);
+                if (otherMessage) {
+                    roomName = otherMessage.sender;
+                    roomType = 'dm';
+                    // We can't easily guess online status here without ID, but name is better than "Chat".
+                }
             }
 
             return {
