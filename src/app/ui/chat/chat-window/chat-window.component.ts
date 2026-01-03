@@ -65,6 +65,7 @@ export class ChatWindowComponent implements AfterViewChecked {
                 memberCount: totalUsersCount
             };
         }),
+        tap(vm => console.log('ChatWindow: VM Update', vm)),
         tap(() => this.shouldScroll = true) // Trigger scroll on new data
     );
 

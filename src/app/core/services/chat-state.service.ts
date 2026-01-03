@@ -117,12 +117,14 @@ export class ChatStateService {
     }
 
     selectRoom(roomId: string) {
+        console.log('ChatStateService: Selecting room', roomId);
         this._selectedRoom.next(roomId);
         this.loadMessages(roomId);
         this.initRealtime(roomId);
     }
 
     async handleDmSelection(targetId: string) {
+        console.log('ChatStateService: handleDmSelection', targetId);
         // 1. Check if `targetId` is a Room ID we already know (public room).
         const knownPublicRoom = this._rooms.value.find(r => r.id === targetId);
         if (knownPublicRoom) {
@@ -242,6 +244,7 @@ export class ChatStateService {
                 }
             });
 
+            console.log('ChatStateService: DM Mapping loaded', map);
             this._dmMap.next(map);
 
         } catch (error) {
@@ -260,8 +263,11 @@ export class ChatStateService {
         // 1. Check if we already have a mapped DM
         const existingRoomId = this._dmMap.value.get(otherUserId);
         if (existingRoomId) {
+            console.log('ChatStateService: Found mapped DM room', existingRoomId);
             this.selectRoom(existingRoomId);
             return;
+        } else {
+            console.log('ChatStateService: No mapped DM room found for user', otherUserId);
         }
 
         // 2. Create room if not found
