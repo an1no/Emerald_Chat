@@ -1,0 +1,107 @@
+<aside class="w-64 bg-sidebar flex flex-col border-r border-sidebar-border h-full">
+  <!-- Workspace header -->
+  <div class="h-14 px-4 flex items-center border-b border-sidebar-border">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+        <lucide-icon name="message-circle" class="w-4 h-4 text-primary-foreground"></lucide-icon>
+      </div>
+      <span class="font-semibold text-foreground">TeamChat</span>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="flex-1 overflow-y-auto scrollbar-thin py-4">
+    <!-- Chat Rooms Section -->
+    <div class="px-2 mb-4">
+      <button (click)="roomsExpanded = !roomsExpanded"
+        class="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors group">
+        <div class="flex items-center gap-1">
+          <lucide-icon *ngIf="roomsExpanded" name="chevron-down" class="w-3 h-3"></lucide-icon>
+          <lucide-icon *ngIf="!roomsExpanded" name="chevron-right" class="w-3 h-3"></lucide-icon>
+          <span>Chat Rooms</span>
+        </div>
+        <lucide-icon name="plus"
+          class="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 hover:text-primary cursor-pointer"></lucide-icon>
+      </button>
+
+      <div *ngIf="roomsExpanded" class="mt-1 space-y-0.5">
+        <button *ngFor="let room of rooms$ | async" (click)="selectRoom(room.id)" [class]="cn(
+            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all',
+            (selectedRoom$ | async) === room.id
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground hover:bg-hover-overlay hover:text-foreground'
+          )">
+          <lucide-icon name="hash" class="w-4 h-4 text-muted-foreground"></lucide-icon>
+          <span class="truncate flex-1 text-left">{{ room.name }}</span>
+          <span *ngIf="room.unread"
+            class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+            {{ room.unread }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Direct Messages Section -->
+    <div class="px-2">
+      <button (click)="dmsExpanded = !dmsExpanded"
+        class="flex items-center justify-between w-full px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors group">
+        <div class="flex items-center gap-1">
+          <lucide-icon *ngIf="dmsExpanded" name="chevron-down" class="w-3 h-3"></lucide-icon>
+          <lucide-icon *ngIf="!dmsExpanded" name="chevron-right" class="w-3 h-3"></lucide-icon>
+          <span>Direct Messages</span>
+        </div>
+        <lucide-icon name="plus"
+          class="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 hover:text-primary cursor-pointer"></lucide-icon>
+      </button>
+
+      <div *ngIf="dmsExpanded" class="mt-1 space-y-0.5">
+        <button *ngFor="let dm of dms$ | async" (click)="selectRoom(dm.id)" [class]="cn(
+            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all',
+             (selectedRoom$ | async) === dm.id
+               ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+               : 'text-sidebar-foreground hover:bg-hover-overlay hover:text-foreground'
+          )">
+          <div class="relative">
+            <div
+              class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium uppercase">
+              {{ dm.avatar }}
+            </div>
+
+            <!-- Online Indicator with Pulse -->
+            <div *ngIf="dm.online" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 border-2 border-sidebar bg-online"></span>
+            </div>
+            <span *ngIf="!dm.online"
+              class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-sidebar bg-offline"></span>
+          </div>
+          <span class="truncate flex-1 text-left">{{ getDmDisplayName(dm.name) }}</span>
+          <span *ngIf="dm.unread"
+            class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+            {{ dm.unread }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User profile footer -->
+  <div class="h-14 px-3 flex items-center gap-3 border-t border-sidebar-border bg-sidebar">
+    <div class="relative">
+      <div
+        class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-medium text-primary-foreground">
+        ME
+      </div>
+      <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar bg-online"></span>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-foreground truncate">You</p>
+      <p class="text-xs text-muted-foreground">Online</p>
+    </div>
+    <button (click)="logout()"
+      class="p-2 hover:bg-hover-overlay rounded-md transition-colors text-muted-foreground hover:text-foreground"
+      title="Sign out">
+      <lucide-icon name="log-out" class="w-4 h-4"></lucide-icon>
+    </button>
+  </div>
+</aside>

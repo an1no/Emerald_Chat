@@ -1,0 +1,27 @@
+<div class="flex flex-col h-full bg-background" *ngIf="vm$ | async as vm">
+    <app-chat-header [roomName]="vm.roomName" [roomType]="vm.roomType" [memberCount]="12"
+        [isOnline]="vm.isOnline"></app-chat-header>
+
+    <!-- Messages area -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin py-4 px-4" #scrollContainer>
+        <div class="space-y-1">
+            <div *ngIf="vm.messages.length === 0"
+                class="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50">
+                <lucide-icon name="message-square" class="w-12 h-12 mb-2"></lucide-icon>
+                <p>No messages yet. Say hello!</p>
+            </div>
+
+            <app-message-bubble *ngFor="let message of vm.messages" [content]="message.content"
+                [sender]="message.sender" [avatar]="message.avatar" [timestamp]="message.timestamp"
+                [isOwn]="message.isOwn" [status]="message.status" [profile]="message.profile"></app-message-bubble>
+        </div>
+
+        <app-typing-indicator [users]="[]"></app-typing-indicator>
+        <!-- Typing indicator logic to be implemented later -->
+
+        <div #messagesEnd></div>
+    </div>
+
+    <app-message-input (send)="onSendMessage($event)"
+        [placeholder]="'Message ' + (vm.roomType === 'room' ? '#' : '') + vm.roomName"></app-message-input>
+</div>
