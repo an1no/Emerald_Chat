@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, shareReplay } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { Message, Room, DirectMessage, Profile } from '../models/message.model';
@@ -36,24 +36,29 @@ export class ChatStateService {
         map(([dms, users, onlineUsers, dmMap]) => {
             const currentUserId = this.authService.currentUser?.id;
 
-            // Map users to DM format
-            return users
+            // 1. Map users to potential DMs (User object with optional roomId)
+            const mappedUsers = users
                 .filter(u => u.userId !== currentUserId)
                 .map(u => {
                     const existingRoomId = u.userId ? dmMap.get(u.userId) : undefined;
                     return {
                         ...u,
-                        // If we have a mapped room ID, use it. Otherwise keep the User ID as ID (for now, until clicked)
-                        // Actually, let's allow 'id' to be RoomID if exists, else UserID?
-                        // No, let's add a explicit 'roomId' property.
                         roomId: existingRoomId,
-                        // Determine if online
                         online: u.userId ? onlineUsers.has(u.userId) : false,
-                        // Attempt to find existing DM room info (unread count, etc)
-                        // simplified for now
                     } as DirectMessage & { roomId?: string };
                 });
-        })
+
+            // 2. Identify Room IDs that were successfully mapped
+            const mappedRoomIds = new Set(mappedUsers.map(u => u.roomId).filter(id => !!id));
+
+            // 3. Find DM Rooms that did NOT match a User (Orphans / Data gap)
+            // We still want to return these so the Chat Window can find them by ID.
+            const unmappedRooms = dms.filter(room => !mappedRoomIds.has(room.id));
+
+            // 4. Merge
+            return [...mappedUsers, ...unmappedRooms];
+        }),
+        shareReplay(1)
     );
 
     public onlineCount$ = this._onlineUsers.pipe(map(s => s.size));
