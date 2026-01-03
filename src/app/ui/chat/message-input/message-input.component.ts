@@ -5,11 +5,11 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Send, Paperclip, Smile } from 'lucide-angular';
 
 @Component({
-    selector: 'app-message-input',
-    standalone: true,
-    imports: [CommonModule, FormsModule, LucideAngularModule],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    template: `
+  selector: 'app-message-input',
+  standalone: true,
+  imports: [CommonModule, FormsModule, LucideAngularModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
     <div class="p-4 bg-background border-t border-border">
       <div class="flex items-end gap-2 bg-secondary/50 p-2 rounded-xl border border-border focus-within:ring-1 focus-within:ring-ring transition-all">
         <button class="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-secondary">
@@ -41,22 +41,22 @@ import { Send, Paperclip, Smile } from 'lucide-angular';
   `
 })
 export class MessageInputComponent {
-    @Input() placeholder = 'Type a message...';
-    @Output() send = new EventEmitter<string>();
+  @Input() placeholder = 'Type a message...';
+  @Output() send = new EventEmitter<string>();
 
-    message = '';
+  message = '';
 
-    handleSend() {
-        if (!this.message.trim()) return;
-        this.send.emit(this.message);
-        this.message = '';
+  handleSend() {
+    if (!this.message.trim()) return;
+    this.send.emit(this.message);
+    this.message = '';
+  }
+
+  onKeyDown(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
+      event.preventDefault();
+      this.handleSend();
     }
-
-    onKeyDown(event: Event) {
-        const keyboardEvent = event as KeyboardEvent;
-        if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
-            event.preventDefault();
-            this.handleSend();
-        }
-    }
+  }
 }
