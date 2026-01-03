@@ -66,6 +66,7 @@ export class ChatStateService {
             if (user) {
                 this.initPresence(user.id);
                 this.loadDmMapping(user.id);
+                this.initGlobalRealtime(user.id);
             }
         });
     }
@@ -252,6 +253,10 @@ export class ChatStateService {
         const currentUserId = this.authService.currentUser?.id;
         if (!currentUserId) return;
 
+        // 0. REFRESH MAPPING FIRST (Critical for preventing duplicates)
+        // This ensures if the other user created a room 1 second ago, we see it.
+        await this.loadDmMapping(currentUserId);
+
         // 1. Check if we already have a mapped DM
         const existingRoomId = this._dmMap.value.get(otherUserId);
         if (existingRoomId) {
@@ -422,5 +427,24 @@ export class ChatStateService {
                     await channel.track({ online_at: new Date().toISOString() });
                 }
             });
+    }
+    private async initGlobalRealtime(userId: string) {
+        // Listen for new rooms I am added to
+        this.supabaseService.client.channel(`user-global:${userId}`)
+            .on('postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'room_participants',
+                    filter: `user_id=eq.${userId}`
+                },
+                async (payload) => {
+                    // I was added to a room! Reload everything.
+                    // Ideally we just fetch this one room, but reloading is safer for now.
+                    await this.loadRooms();
+                    await this.loadDmMapping(userId);
+                }
+            )
+            .subscribe();
     }
 }
