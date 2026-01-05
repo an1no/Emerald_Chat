@@ -33,4 +33,5 @@ export interface DirectMessage {
     online: boolean;
     unread?: number;
     userId?: string; // ID of the other user
+    roomId?: string; // Mapped Room ID if exists
 }
