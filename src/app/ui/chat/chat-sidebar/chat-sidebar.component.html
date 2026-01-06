@@ -55,32 +55,35 @@
       </button>
 
       <div *ngIf="dmsExpanded" class="mt-1 space-y-0.5">
-        <button *ngFor="let dm of dms$ | async" (click)="selectRoom(dm.id)" [class]="cn(
-            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all',
-             ((selectedRoom$ | async) === dm.id || (selectedRoom$ | async) === dm.roomId)
-               ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-               : 'text-sidebar-foreground hover:bg-hover-overlay hover:text-foreground'
-          )">
-          <div class="relative">
-            <div
-              class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium uppercase">
-              {{ dm.avatar }}
-            </div>
+        <ng-container *ngIf="{ currentId: selectedRoom$ | async } as selection">
+          <button *ngFor="let dm of dms$ | async" (click)="selectRoom(dm.id)" [class]="cn(
+              'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all',
+               (selection.currentId === dm.id || (dm.roomId && selection.currentId === dm.roomId))
+                 ? 'bg-primary/15 text-foreground border-l-2 border-primary rounded-l-none pl-1.5'
+                 : 'text-sidebar-foreground hover:bg-hover-overlay hover:text-foreground border-l-2 border-transparent pl-1.5'
+            )">
+            <div class="relative">
+              <div
+                class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium uppercase">
+                {{ dm.avatar }}
+              </div>
 
-            <!-- Online Indicator with Pulse -->
-            <div *ngIf="dm.online" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 border-2 border-sidebar bg-online"></span>
+              <!-- Online Indicator with Pulse -->
+              <div *ngIf="dm.online" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5">
+                <span
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 border-2 border-sidebar bg-online"></span>
+              </div>
+              <span *ngIf="!dm.online"
+                class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-sidebar bg-offline"></span>
             </div>
-            <span *ngIf="!dm.online"
-              class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-sidebar bg-offline"></span>
-          </div>
-          <span class="truncate flex-1 text-left">{{ getDmDisplayName(dm.name) }}</span>
-          <span *ngIf="dm.unread"
-            class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
-            {{ dm.unread }}
-          </span>
-        </button>
+            <span class="truncate flex-1 text-left">{{ getDmDisplayName(dm.name) }}</span>
+            <span *ngIf="dm.unread"
+              class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+              {{ dm.unread }}
+            </span>
+          </button>
+        </ng-container>
       </div>
     </div>
   </div>

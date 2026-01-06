@@ -53,7 +53,10 @@ export class ChatStateService {
 
             // 3. Find DM Rooms that did NOT match a User (Orphans / Data gap)
             // We still want to return these so the Chat Window can find them by ID.
-            const unmappedRooms = dms.filter(room => !mappedRoomIds.has(room.id));
+            // BUT: If the room name is just "DM", it's a generic unmapped room. Hide it.
+            const unmappedRooms = dms
+                .filter(room => !mappedRoomIds.has(room.id))
+                .filter(room => room.name !== 'DM');
 
             // 4. Merge
             return [...mappedUsers, ...unmappedRooms];
@@ -304,21 +307,31 @@ export class ChatStateService {
         }
 
         // Add participants
-        await this.supabaseService.client
+        const { error: partError } = await this.supabaseService.client
             .from('room_participants')
             .insert([
                 { room_id: newRoom.id, user_id: currentUserId },
                 { room_id: newRoom.id, user_id: otherUserId }
             ]);
 
-        // Reload rooms to refresh the list (and hopefully pick up the new room)
-        // But since we are showing ALL users, we just need to "select" this user context.
-        // Actually, we need to map the User ID to the new Room ID to open the chat window.
-        // This suggests we need a mechanism to Select Room By User ID.
+        if (partError) {
+            console.error('Error adding participants to DM:', partError);
+            return;
+        }
 
-        // Update local map optimistically or reload
-        await this.loadRooms();
-        await this.loadDmMapping(currentUserId); // Refresh map
+        // OPTIMISTIC UPDATE: Manually update the map immediately so the UI reacts
+        // without waiting for the roundtrip or potentially race-y queries.
+        const currentMap = this._dmMap.value;
+        currentMap.set(otherUserId, newRoom.id);
+        this._dmMap.next(new Map(currentMap)); // Trigger reactivity
+
+        // Also reload "official" state
+        // await this.loadRooms(); // This might override _dms, which is fine
+        // await this.loadDmMapping(currentUserId); 
+
+        // We still call loadRooms/loadDmMapping to be safe, but the optimistic update handles the immediate user interaction
+        this.loadRooms().then(() => this.loadDmMapping(currentUserId));
+
         this.selectRoom(newRoom.id);
     }
 
